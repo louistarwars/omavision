@@ -1,36 +1,32 @@
 import QtQuick
+import QtQuick.Controls
 import Quickshell
-import Quickshell.Wayland
+import Quickshell.Io
+import qs.Ui
+import qs.Commons
 
-Item {
+Panel {
     id: root
 
-    property bool opened: false
+    moduleName: "louistarwars.omavision"
+    ipcTarget: "louistarwars.omavision"
+
+    implicitWidth: 1400
+    implicitHeight: 850
+
     property string mode: "MACHINE"
     property string hoveredNode: ""
 
-    width: 1400
-    height: 850
-
-    function open(payloadJson) {
-        opened = true
-    }
-
-    function close() {
-        opened = false
-    }
-
-    function toggle() {
-        opened = !opened
-    }
-
-    visible: opened
+    // ============================================================
+    // MAIN BACKGROUND
+    // ============================================================
 
     Rectangle {
         anchors.fill: parent
+
         radius: 28
+
         color: "#090a0f"
-        opacity: 0.98
 
         border.width: 1
         border.color: "#292d37"
@@ -38,15 +34,22 @@ Item {
 
     Rectangle {
         anchors.fill: parent
+
         radius: 28
+
         color: "transparent"
 
         border.width: 1
         border.color: "#ffffff10"
     }
 
+    // ============================================================
     // HEADER
+    // ============================================================
+
     Row {
+        id: header
+
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
@@ -54,7 +57,8 @@ Item {
         anchors.margins: 32
 
         height: 55
-        spacing: 26
+
+        spacing: 24
 
         Text {
             text: "OMAVISION"
@@ -92,25 +96,25 @@ Item {
                 model: ["MACHINE", "NETWORK", "PROCESSES"]
 
                 Rectangle {
-                    width: modeText.implicitWidth + 28
+                    width: modeLabel.implicitWidth + 28
                     height: 34
 
                     radius: 17
 
                     color: root.mode === modelData
-                           ? "#ffffff"
-                           : "#15171d"
+                        ? "#ffffff"
+                        : "#15171d"
 
                     Text {
-                        id: modeText
+                        id: modeLabel
 
                         anchors.centerIn: parent
 
                         text: modelData
 
                         color: root.mode === modelData
-                               ? "#090a0f"
-                               : "#777b86"
+                            ? "#090a0f"
+                            : "#777b86"
 
                         font.pixelSize: 9
                         font.bold: true
@@ -129,20 +133,25 @@ Item {
         }
     }
 
+    // ============================================================
     // VISUAL SPACE
+    // ============================================================
+
     Item {
         id: scene
 
-        anchors.top: parent.top
-        anchors.topMargin: 105
-
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 75
+        anchors.top: header.bottom
+        anchors.bottom: footer.top
 
         anchors.left: parent.left
         anchors.right: parent.right
 
+        anchors.margins: 20
+
+        // --------------------------------------------------------
         // CONNECTIONS
+        // --------------------------------------------------------
+
         Canvas {
             anchors.fill: parent
 
@@ -169,51 +178,19 @@ Item {
                 var cx = width * 0.5
                 var cy = height * 0.5
 
-                line(
-                    cx,
-                    cy,
-                    width * 0.30,
-                    height * 0.27
-                )
-
-                line(
-                    cx,
-                    cy,
-                    width * 0.70,
-                    height * 0.25
-                )
-
-                line(
-                    cx,
-                    cy,
-                    width * 0.27,
-                    height * 0.70
-                )
-
-                line(
-                    cx,
-                    cy,
-                    width * 0.73,
-                    height * 0.68
-                )
-
-                line(
-                    cx,
-                    cy,
-                    width * 0.50,
-                    height * 0.12
-                )
-
-                line(
-                    cx,
-                    cy,
-                    width * 0.50,
-                    height * 0.88
-                )
+                line(cx, cy, width * 0.30, height * 0.27)
+                line(cx, cy, width * 0.70, height * 0.25)
+                line(cx, cy, width * 0.27, height * 0.70)
+                line(cx, cy, width * 0.73, height * 0.68)
+                line(cx, cy, width * 0.50, height * 0.12)
+                line(cx, cy, width * 0.50, height * 0.88)
             }
         }
 
+        // --------------------------------------------------------
         // PARTICLES
+        // --------------------------------------------------------
+
         Repeater {
             model: 18
 
@@ -249,7 +226,10 @@ Item {
             }
         }
 
+        // --------------------------------------------------------
         // CENTRAL MACHINE
+        // --------------------------------------------------------
+
         Item {
             id: machine
 
@@ -344,7 +324,10 @@ Item {
             }
         }
 
+        // --------------------------------------------------------
         // NODES
+        // --------------------------------------------------------
+
         Repeater {
             model: [
                 {
@@ -354,7 +337,6 @@ Item {
                     y: 0.27,
                     size: 76
                 },
-
                 {
                     name: "VS Code",
                     type: "APP",
@@ -362,7 +344,6 @@ Item {
                     y: 0.25,
                     size: 88
                 },
-
                 {
                     name: "Terminal",
                     type: "APP",
@@ -370,7 +351,6 @@ Item {
                     y: 0.70,
                     size: 65
                 },
-
                 {
                     name: "Discord",
                     type: "APP",
@@ -378,7 +358,6 @@ Item {
                     y: 0.68,
                     size: 65
                 },
-
                 {
                     name: "CPU",
                     type: "SYSTEM",
@@ -386,7 +365,6 @@ Item {
                     y: 0.12,
                     size: 55
                 },
-
                 {
                     name: "RAM",
                     type: "SYSTEM",
@@ -429,6 +407,12 @@ Item {
                         : "#3a3f4a"
 
                     Behavior on width {
+                        NumberAnimation {
+                            duration: 180
+                        }
+                    }
+
+                    Behavior on height {
                         NumberAnimation {
                             duration: 180
                         }
@@ -491,19 +475,25 @@ Item {
 
                     hoverEnabled: true
 
-                    onEntered:
-                        root.hoveredNode =
-                            modelData.name
+                    onEntered: {
+                        root.hoveredNode = modelData.name
+                    }
 
-                    onExited:
+                    onExited: {
                         root.hoveredNode = ""
+                    }
                 }
             }
         }
     }
 
+    // ============================================================
     // FOOTER
+    // ============================================================
+
     Row {
+        id: footer
+
         anchors.bottom: parent.bottom
         anchors.left: parent.left
 
@@ -546,11 +536,6 @@ Item {
                 parent.verticalCenter
         }
 
-        Item {
-            width: 1
-            height: 1
-        }
-
         Text {
             text: "ESC  CLOSE"
 
@@ -564,7 +549,17 @@ Item {
         }
     }
 
-    Keys.onEscapePressed: {
-        root.close()
+    // ============================================================
+    // KEYBOARD PANEL
+    // ============================================================
+
+    KeyboardPanel {
+        id: keyboardPanel
+
+        anchors.fill: parent
+
+        onClosed: {
+            root.close()
+        }
     }
 }

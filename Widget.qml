@@ -1,36 +1,80 @@
 import QtQuick
+import Quickshell
+import qs.Ui
 
-Item {
-  id: root
-  property var bar
-  property string moduleName
-  property var settings
+BarWidget {
+    id: root
 
-  implicitWidth: 34
-  implicitHeight: bar ? bar.barSize : 26
+    moduleName: "louistarwars.omavision"
 
-  Rectangle {
-    anchors.centerIn: parent
-    width: 28
-    height: 24
-    radius: 8
-    color: mouse.containsMouse ? Qt.rgba(1,1,1,0.10) : "transparent"
+    readonly property bool opened:
+        panelLoader.item
+        ? panelLoader.item.opened === true
+        : false
 
-    Text {
-      anchors.centerIn: parent
-      text: "◉"
-      color: bar ? bar.foreground : "white"
-      font.pixelSize: 14
-      font.weight: Font.DemiBold
+    function open() {
+        if (panelLoader.item)
+            panelLoader.item.open()
     }
-  }
 
-  MouseArea {
-    id: mouse
-    anchors.fill: parent
-    hoverEnabled: true
-    onEntered: if (bar) bar.showTooltip(root, "OmaVision · inspect your machine")
-    onExited: if (bar) bar.hideTooltip(root)
-    onClicked: if (bar) bar.run("omarchy-shell shell toggle louistarwars.omavision '{}'")
-  }
+    function close() {
+        if (panelLoader.item)
+            panelLoader.item.close()
+    }
+
+    function toggle() {
+        if (panelLoader.item)
+            panelLoader.item.toggle()
+    }
+
+    function closeForPopoutSwitch() {
+        if (panelLoader.item)
+            panelLoader.item.closeForPopoutSwitch()
+    }
+
+    function injectPanel() {
+        if (!panelLoader.item)
+            return
+
+        panelLoader.item.bar = root.bar
+        panelLoader.item.anchorItem = button
+        panelLoader.item.hostWidget = root
+    }
+
+    implicitWidth: button.implicitWidth
+    implicitHeight: button.implicitHeight
+
+    onBarChanged: injectPanel()
+
+    Loader {
+        id: panelLoader
+
+        active: true
+
+        source: Qt.resolvedUrl("Panel.qml")
+
+        visible: false
+
+        onLoaded: {
+            root.injectPanel()
+            Qt.callLater(root.injectPanel)
+        }
+    }
+
+    WidgetButton {
+        id: button
+
+        anchors.fill: parent
+
+        bar: root.bar
+
+        text: "◉"
+
+        tooltipText: "Open OmaVision"
+
+        onPressed: function(buttonCode) {
+            if (buttonCode === Qt.LeftButton)
+                root.toggle()
+        }
+    }
 }

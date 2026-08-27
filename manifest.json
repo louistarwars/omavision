@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "louistarwars.omavision",
+  "name": "OmaVision",
+  "version": "1.0.0",
+  "author": "louistarwars",
+  "description": "A live visual map of your Omarchy system: windows, workspaces, processes, resources and connections.",
+  "kinds": ["panel"],
+  "entryPoints": {
+    "panel": "Panel.qml"
+  },
+  "keepLoaded": true
+}

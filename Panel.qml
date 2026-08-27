@@ -1,280 +1,372 @@
 import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
 
-Item {
-  id: root
+PanelWindow {
+    id: root
 
-  property bool opened: false
-  property var data: ({})
-  property int page: 0
-  property string scriptPath: ""
+    implicitWidth: 1400
+    implicitHeight: 850
 
-  readonly property color ink: "#F4F7F5"
-  readonly property color muted: "#87928D"
-  readonly property color panel: "#111613"
-  readonly property color panel2: "#151C18"
-  readonly property color line: Qt.rgba(1,1,1,0.08)
-  readonly property color accent: "#9BE7B0"
-  readonly property color accentSoft: Qt.rgba(0.608,0.906,0.69,0.12)
-
-  function open(payloadJson) {
-    opened = true
-    page = 0
-    snapshot.running = true
-  }
-
-  function close() { opened = false }
-
-  Component.onCompleted: scriptPath = manifest.__sourceDir + "/scripts/snapshot.sh"
-
-  Timer {
-    interval: 1500
-    repeat: true
-    running: root.opened
-    onTriggered: snapshot.running = true
-  }
-
-  Process {
-    id: snapshot
-    command: ["bash", root.scriptPath]
-    stdout: StdioCollector {
-      onStreamFinished: {
-        try { root.data = JSON.parse(text) }
-        catch (e) { console.warn("OmaVision: invalid snapshot", e) }
-      }
-    }
-  }
-
-  PanelWindow {
-    id: win
-    visible: root.opened
-    implicitWidth: Math.min(1240, screen ? screen.width - 90 : 1240)
-    implicitHeight: Math.min(780, screen ? screen.height - 90 : 780)
     color: "transparent"
-    WlrLayershell.namespace: "omavision"
+
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
-    anchors { top: true; bottom: true; left: true; right: true }
 
-    Item {
-      anchors.fill: parent
-      focus: true
-      Keys.onEscapePressed: root.close()
+    property real zoom: 1.0
+    property string mode: "MACHINE"
+    property string hoveredNode: ""
 
-      Rectangle {
-        anchors.centerIn: parent
-        width: Math.min(parent.width - 56, 1160)
-        height: Math.min(parent.height - 56, 720)
-        radius: 26
-        color: Qt.rgba(0.035,0.045,0.04,0.985)
+    property var nodes: [
+        { name: "Firefox", type: "APP", x: 0.31, y: 0.32, size: 82 },
+        { name: "VS Code", type: "APP", x: 0.68, y: 0.30, size: 92 },
+        { name: "Terminal", type: "APP", x: 0.29, y: 0.66, size: 70 },
+        { name: "Discord", type: "APP", x: 0.70, y: 0.65, size: 68 },
+        { name: "CPU", type: "SYSTEM", x: 0.50, y: 0.20, size: 58 },
+        { name: "RAM", type: "SYSTEM", x: 0.50, y: 0.80, size: 62 }
+    ]
+
+    Rectangle {
+        anchors.fill: parent
+        radius: 28
+        color: "#090a0f"
+        opacity: 0.97
         border.width: 1
-        border.color: Qt.rgba(1,1,1,0.10)
+        border.color: "#252833"
+    }
 
-        Rectangle {
-          anchors.left: parent.left
-          anchors.right: parent.right
-          anchors.top: parent.top
-          height: 2
-          radius: 1
-          color: root.accent
-          opacity: 0.7
+    Rectangle {
+        anchors.fill: parent
+        radius: 28
+        color: "transparent"
+        border.width: 1
+        border.color: "#ffffff10"
+    }
+
+    // Header
+    Row {
+        id: header
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: 32
+        height: 55
+        spacing: 28
+
+        Text {
+            text: "OMAVISION"
+            color: "white"
+            font.pixelSize: 23
+            font.bold: true
+            anchors.verticalCenter: parent.verticalCenter
         }
 
-        ColumnLayout {
-          anchors.fill: parent
-          anchors.margins: 28
-          spacing: 20
+        Text {
+            text: "YOUR MACHINE, VISUALIZED"
+            color: "#737783"
+            font.pixelSize: 11
+            font.letterSpacing: 2
+            anchors.verticalCenter: parent.verticalCenter
+        }
 
-          RowLayout {
-            Layout.fillWidth: true
-            spacing: 16
+        Item { width: 1; height: 1 }
 
-            ColumnLayout {
-              Layout.fillWidth: true
-              spacing: 2
-              Text { text: "OMAVISION"; color: root.ink; font.pixelSize: 26; font.weight: Font.Bold }
-              Text { text: "YOUR MACHINE, AT A GLANCE"; color: root.muted; font.pixelSize: 10; font.letterSpacing: 1.6 }
-            }
+        Row {
+            spacing: 8
+            anchors.verticalCenter: parent.verticalCenter
 
             Repeater {
-              model: ["OVERVIEW", "APPS", "SYSTEM"]
-              delegate: Rectangle {
-                implicitWidth: 88; implicitHeight: 34; radius: 10
-                color: index === root.page ? root.accentSoft : "transparent"
-                border.width: index === root.page ? 1 : 0
-                border.color: Qt.rgba(0.608,0.906,0.69,0.22)
-                Text { anchors.centerIn: parent; text: modelData; color: index === root.page ? root.ink : root.muted; font.pixelSize: 10; font.weight: Font.DemiBold }
-                MouseArea { anchors.fill: parent; onClicked: root.page = index }
-              }
+                model: ["MACHINE", "NETWORK", "PROCESSES"]
+
+                Rectangle {
+                    width: modeText.implicitWidth + 28
+                    height: 34
+                    radius: 17
+                    color: root.mode === modelData ? "#ffffff" : "#15171d"
+
+                    Text {
+                        id: modeText
+                        anchors.centerIn: parent
+                        text: modelData
+                        color: root.mode === modelData ? "#090a0f" : "#777b86"
+                        font.pixelSize: 10
+                        font.bold: true
+                        font.letterSpacing: 1
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: root.mode = modelData
+                    }
+                }
+            }
+        }
+    }
+
+    // Main visual field
+    Item {
+        id: scene
+        anchors.top: header.bottom
+        anchors.bottom: footer.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: 20
+
+        // connection lines
+        Canvas {
+            anchors.fill: parent
+
+            onPaint: {
+                var ctx = getContext("2d")
+                ctx.clearRect(0, 0, width, height)
+
+                ctx.lineWidth = 1
+
+                function line(x1, y1, x2, y2) {
+                    ctx.strokeStyle = "#30343e"
+                    ctx.beginPath()
+                    ctx.moveTo(x1, y1)
+                    ctx.lineTo(x2, y2)
+                    ctx.stroke()
+                }
+
+                var cx = width * 0.50
+                var cy = height * 0.50
+
+                line(cx, cy, width * 0.31, height * 0.32)
+                line(cx, cy, width * 0.68, height * 0.30)
+                line(cx, cy, width * 0.29, height * 0.66)
+                line(cx, cy, width * 0.70, height * 0.65)
+                line(cx, cy, width * 0.50, height * 0.20)
+                line(cx, cy, width * 0.50, height * 0.80)
+            }
+        }
+
+        // animated particles
+        Repeater {
+            model: 12
+
+            Rectangle {
+                width: 3
+                height: 3
+                radius: 2
+                color: "#ffffff"
+                opacity: 0.45
+
+                x: scene.width * (0.25 + ((index * 37) % 55) / 100)
+                y: scene.height * (0.20 + ((index * 61) % 60) / 100)
+
+                SequentialAnimation on opacity {
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 0.05; duration: 900 + index * 70 }
+                    NumberAnimation { to: 0.55; duration: 900 + index * 70 }
+                }
+            }
+        }
+
+        // Central machine
+        Item {
+            id: machine
+            x: scene.width / 2 - 75
+            y: scene.height / 2 - 75
+            width: 150
+            height: 150
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: 150
+                height: 150
+                radius: 75
+                color: "#12151c"
+                border.width: 1
+                border.color: "#4b515e"
+
+                SequentialAnimation on scale {
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 1.035; duration: 1800 }
+                    NumberAnimation { to: 1.0; duration: 1800 }
+                }
             }
 
             Rectangle {
-              width: 38; height: 38; radius: 12; color: Qt.rgba(1,1,1,0.05)
-              Text { anchors.centerIn: parent; text: "×"; color: root.muted; font.pixelSize: 20 }
-              MouseArea { anchors.fill: parent; onClicked: root.close() }
+                anchors.centerIn: parent
+                width: 112
+                height: 112
+                radius: 56
+                color: "#0d0f14"
+                border.width: 1
+                border.color: "#ffffff18"
             }
-          }
 
-          // OVERVIEW
-          Item {
-            visible: root.page === 0
-            Layout.fillWidth: true; Layout.fillHeight: true
+            Column {
+                anchors.centerIn: parent
+                spacing: 5
 
-            ColumnLayout {
-              anchors.fill: parent; spacing: 16
-
-              RowLayout {
-                Layout.fillWidth: true; Layout.preferredHeight: 84; spacing: 12
-                Repeater {
-                  model: [
-                    {label:"CPU", value:(root.data.cpu || 0)+"%"},
-                    {label:"MEMORY", value:(root.data.memory?.pct || 0)+"%"},
-                    {label:"NETWORK", value:(root.data.network?.tcpSockets || 0)+" sockets"},
-                    {label:"UPTIME", value:Math.floor((root.data.uptime || 0)/3600)+"h"}
-                  ]
-                  delegate: Rectangle {
-                    Layout.fillWidth: true; Layout.fillHeight: true; radius: 16
-                    color: root.panel2; border.width: 1; border.color: root.line
-                    ColumnLayout { anchors.fill: parent; anchors.margins: 14; spacing: 2
-                      Text { text: modelData.label; color: root.muted; font.pixelSize: 9; font.weight: Font.DemiBold }
-                      Text { text: modelData.value; color: root.ink; font.pixelSize: 23; font.weight: Font.Bold }
-                    }
-                  }
-                }
-              }
-
-              RowLayout {
-                Layout.fillWidth: true; Layout.fillHeight: true; spacing: 16
-
-                Rectangle {
-                  Layout.fillWidth: true; Layout.fillHeight: true; radius: 20
-                  color: root.panel; border.width: 1; border.color: root.line
-
-                  ColumnLayout { anchors.fill: parent; anchors.margins: 20; spacing: 6
-                    Text { text: "MACHINE"; color: root.ink; font.pixelSize: 12; font.weight: Font.Bold }
-                    Text { text: root.data.host || "Omarchy"; color: root.muted; font.pixelSize: 10 }
-
-                    Item {
-                      Layout.fillWidth: true; Layout.fillHeight: true
-
-                      Rectangle {
-                        id: core
-                        anchors.centerIn: parent
-                        width: 122; height: 122; radius: 61
-                        color: root.accentSoft
-                        border.width: 1; border.color: Qt.rgba(0.608,0.906,0.69,0.35)
-                        Text { anchors.centerIn: parent; text: "OMARCHY"; color: root.ink; font.pixelSize: 12; font.weight: Font.Bold }
-                      }
-
-                      Repeater {
-                        model: Math.min((root.data.windows || []).length, 8)
-                        delegate: Rectangle {
-                          width: 48; height: 48; radius: 16
-                          property real angle: (index / Math.max(1, Math.min((root.data.windows || []).length,8))) * Math.PI * 2 - Math.PI/2
-                          property real orbit: 150
-                          x: parent.width/2 + Math.cos(angle)*orbit - width/2
-                          y: parent.height/2 + Math.sin(angle)*orbit - height/2
-                          color: root.panel2; border.width: 1; border.color: root.line
-                          Text { anchors.centerIn: parent; text: "APP"; color: root.muted; font.pixelSize: 8; font.weight: Font.Bold }
-                        }
-                      }
-                    }
-                  }
+                Text {
+                    text: "YOUR"
+                    color: "#777c88"
+                    font.pixelSize: 9
+                    font.letterSpacing: 2
+                    anchors.horizontalCenter: parent.horizontalCenter
                 }
 
-                Rectangle {
-                  Layout.preferredWidth: 330; Layout.fillHeight: true; radius: 20
-                  color: root.panel; border.width: 1; border.color: root.line
-                  ColumnLayout { anchors.fill: parent; anchors.margins: 20; spacing: 12
-                    Text { text: "TOP ACTIVITY"; color: root.ink; font.pixelSize: 12; font.weight: Font.Bold }
-                    Repeater {
-                      model: (root.data.processes || []).slice(0,6)
-                      delegate: RowLayout { Layout.fillWidth: true; spacing: 10
-                        Rectangle { width: 30; height: 30; radius: 10; color: root.accentSoft
-                          Text { anchors.centerIn: parent; text: "•"; color: root.accent; font.pixelSize: 16 }
-                        }
-                        ColumnLayout { Layout.fillWidth: true; spacing: 1
-                          Text { text: modelData.name; color: root.ink; font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true }
-                          Text { text: modelData.cpu.toFixed(1)+"% CPU"; color: root.muted; font.pixelSize: 9 }
-                        }
-                      }
-                    }
-                    Item { Layout.fillHeight: true }
-                    Text { text: "ESC  close  ·  1 / 2 / 3  switch views"; color: root.muted; font.pixelSize: 9 }
-                  }
+                Text {
+                    text: "MACHINE"
+                    color: "white"
+                    font.pixelSize: 17
+                    font.bold: true
+                    anchors.horizontalCenter: parent.horizontalCenter
                 }
-              }
+
+                Text {
+                    text: "ONLINE"
+                    color: "#9ca1ad"
+                    font.pixelSize: 8
+                    font.letterSpacing: 2
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
             }
-          }
-
-          // APPS
-          Item {
-            visible: root.page === 1
-            Layout.fillWidth: true; Layout.fillHeight: true
-            ColumnLayout { anchors.fill: parent; spacing: 10
-              Text { text: "RUNNING PROCESSES"; color: root.ink; font.pixelSize: 13; font.weight: Font.Bold }
-              Text { text: "The busiest things on your machine right now."; color: root.muted; font.pixelSize: 10 }
-              ListView {
-                Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 7
-                model: root.data.processes || []
-                delegate: Rectangle {
-                  width: ListView.view.width; height: 54; radius: 14; color: root.panel2; border.width: 1; border.color: root.line
-                  RowLayout { anchors.fill: parent; anchors.margins: 12; spacing: 12
-                    Rectangle { width: 30; height: 30; radius: 9; color: root.accentSoft; Text { anchors.centerIn: parent; text: "•"; color: root.accent; font.pixelSize: 15 } }
-                    ColumnLayout { Layout.fillWidth: true; spacing: 2
-                      Text { text: modelData.name; color: root.ink; font.pixelSize: 11; font.weight: Font.DemiBold }
-                      Text { text: "PID " + modelData.pid; color: root.muted; font.pixelSize: 9 }
-                    }
-                    Text { text: modelData.cpu.toFixed(1)+"%"; color: root.ink; font.pixelSize: 11 }
-                    Text { text: Math.round(modelData.mem || 0)+" MB"; color: root.muted; font.pixelSize: 10 }
-                  }
-                }
-              }
-            }
-          }
-
-          // SYSTEM
-          Item {
-            visible: root.page === 2
-            Layout.fillWidth: true; Layout.fillHeight: true
-            GridLayout { anchors.fill: parent; columns: 2; rowSpacing: 12; columnSpacing: 12
-              Repeater {
-                model: [
-                  {label:"CPU", value:root.data.cpu || 0, unit:"%"},
-                  {label:"MEMORY", value:root.data.memory?.pct || 0, unit:"%"},
-                  {label:"TCP SOCKETS", value:root.data.network?.tcpSockets || 0, unit:""},
-                  {label:"UPTIME", value:Math.floor((root.data.uptime || 0)/3600), unit:" hours"}
-                ]
-                delegate: Rectangle {
-                  Layout.fillWidth: true; Layout.fillHeight: true; radius: 18; color: root.panel; border.width: 1; border.color: root.line
-                  ColumnLayout { anchors.fill: parent; anchors.margins: 20; spacing: 12
-                    Text { text: modelData.label; color: root.muted; font.pixelSize: 10; font.weight: Font.DemiBold }
-                    RowLayout { spacing: 5
-                      Text { text: modelData.value; color: root.ink; font.pixelSize: 30; font.weight: Font.Bold }
-                      Text { text: modelData.unit; color: root.muted; font.pixelSize: 11 }
-                    }
-                    Rectangle { Layout.fillWidth: true; height: 7; radius: 3; color: Qt.rgba(1,1,1,0.06)
-                      Rectangle { width: Math.min(1, Number(modelData.value)/100)*parent.width; height: parent.height; radius: 3; color: root.accent }
-                    }
-                  }
-                }
-              }
-              Rectangle { Layout.columnSpan: 2; Layout.fillWidth: true; Layout.fillHeight: true; radius: 18; color: root.panel; border.width: 1; border.color: root.line
-                ColumnLayout { anchors.fill: parent; anchors.margins: 20; spacing: 6
-                  Text { text: "SYSTEM"; color: root.ink; font.pixelSize: 12; font.weight: Font.Bold }
-                  Text { text: "Kernel  ·  " + (root.data.kernel || "unknown"); color: root.muted; font.pixelSize: 10 }
-                  Text { text: "GPU  ·  " + (root.data.gpu || "not detected"); color: root.muted; font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true }
-                  Text { text: "Network  ·  TCP endpoints " + (root.data.network?.tcpSockets || 0); color: root.muted; font.pixelSize: 10 }
-                }
-              }
-            }
-          }
         }
-      }
+
+        // Nodes
+        Repeater {
+            model: root.nodes
+
+            Item {
+                id: node
+                width: modelData.size + 80
+                height: modelData.size + 80
+
+                x: scene.width * modelData.x - width / 2
+                y: scene.height * modelData.y - height / 2
+
+                property bool hovered: root.hoveredNode === modelData.name
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: modelData.size + (node.hovered ? 18 : 0)
+                    height: width
+                    radius: width / 2
+                    color: "#10131a"
+                    border.width: node.hovered ? 2 : 1
+                    border.color: node.hovered ? "#ffffff" : "#3a3f4a"
+
+                    Behavior on width {
+                        NumberAnimation { duration: 180 }
+                    }
+
+                    Behavior on height {
+                        NumberAnimation { duration: 180 }
+                    }
+                }
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 8
+                    height: 8
+                    radius: 4
+                    color: "#ffffff"
+                }
+
+                Column {
+                    anchors.top: parent.verticalCenter
+                    anchors.topMargin: modelData.size / 2 + 12
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 3
+
+                    Text {
+                        text: modelData.name
+                        color: node.hovered ? "white" : "#b9bdc7"
+                        font.pixelSize: 12
+                        font.bold: true
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+
+                    Text {
+                        text: modelData.type
+                        color: "#5f6470"
+                        font.pixelSize: 8
+                        font.letterSpacing: 1.5
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+
+                    onEntered: root.hoveredNode = modelData.name
+                    onExited: root.hoveredNode = ""
+                }
+
+                Behavior on x {
+                    NumberAnimation { duration: 350; easing.type: Easing.OutCubic }
+                }
+
+                Behavior on y {
+                    NumberAnimation { duration: 350; easing.type: Easing.OutCubic }
+                }
+            }
+        }
     }
-  }
+
+    // Footer
+    Row {
+        id: footer
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: 32
+        height: 48
+        spacing: 30
+
+        Text {
+            text: "CPU  27%"
+            color: "#858a96"
+            font.pixelSize: 11
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        Text {
+            text: "RAM  8.2 GB"
+            color: "#858a96"
+            font.pixelSize: 11
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        Text {
+            text: "NETWORK  16"
+            color: "#858a96"
+            font.pixelSize: 11
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        Item { Layout.fillWidth: true; width: 1 }
+
+        Text {
+            text: "ESC  CLOSE"
+            color: "#555a65"
+            font.pixelSize: 9
+            font.letterSpacing: 1
+            anchors.verticalCenter: parent.verticalCenter
+        }
+    }
+
+    // ESC closes
+    Shortcut {
+        sequence: "Escape"
+        onActivated: root.visible = false
+    }
+
+    // Zoom with wheel
+    WheelHandler {
+        onWheel: function(event) {
+            root.zoom = Math.max(0.7, Math.min(1.5,
+                root.zoom + event.angleDelta.y / 1200))
+        }
+    }
+
+    // Close by clicking outside is intentionally disabled:
+    // OmaVision behaves like a focused visual workspace.
 }

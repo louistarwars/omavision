@@ -2,12 +2,21 @@
   "schemaVersion": 1,
   "id": "louistarwars.omavision",
   "name": "OmaVision",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "author": "louistarwars",
-  "description": "A live visual map of your Omarchy system: windows, workspaces, processes, resources and connections.",
-  "kinds": ["panel"],
+  "description": "A beautiful live visual map of your Omarchy machine.",
+  "kinds": ["panel", "bar-widget"],
   "entryPoints": {
-    "panel": "Panel.qml"
+    "panel": "Panel.qml",
+    "barWidget": "Widget.qml"
   },
-  "keepLoaded": true
+  "keepLoaded": true,
+  "barWidget": {
+    "displayName": "OmaVision",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {},
+    "schema": []
+  }
 }

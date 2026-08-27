@@ -71,3 +71,12 @@ This v1.0 intentionally focuses on reliable read-only visualization. It does not
 - Plugin API for Docker/Git/CTF integrations.
 
 MIT License.
+
+
+## v2.0
+
+- Complete visual redesign
+- Simplified Overview / Apps / System views
+- Native Omarchy top-bar widget
+- No custom keyboard shortcut required
+- Live system data remains local-only

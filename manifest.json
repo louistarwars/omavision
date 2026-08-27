@@ -2,13 +2,10 @@
   "schemaVersion": 1,
   "id": "louistarwars.omavision",
   "name": "OmaVision",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "author": "louistarwars",
   "description": "A beautiful live visual map of your Omarchy machine.",
-  "kinds": [
-    "panel",
-    "bar-widget"
-  ],
+  "kinds": ["panel", "bar-widget"],
   "entryPoints": {
     "panel": "Panel.qml",
     "barWidget": "Widget.qml"
